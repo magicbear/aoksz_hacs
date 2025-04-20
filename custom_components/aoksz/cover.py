@@ -51,11 +51,13 @@ class AOKCover(CoordinatorEntity, CoverEntity):
 
         self.client = client
         self._data_key = dev
+        self._attr_unique_id = key
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry.entry_id)},
+            identifiers={(DOMAIN, self._attr_unique_id)},
             name="AOK %s" % key,
             manufacturer="奥科伟业",
-            model=None
+            model=None,
+            via_device=(DOMAIN, config_entry.entry_id)
         )
         self._attr_translation_key = key
         self.entity_description = CoverEntityDescription(
@@ -109,7 +111,3 @@ class AOKCover(CoordinatorEntity, CoverEntity):
         """处理来自协调器的更新数据。"""
         self.update()
         self.async_write_ha_state()
-
-    @property
-    def unique_id(self):
-        return f"{self.entity_description.key.lower()}"
