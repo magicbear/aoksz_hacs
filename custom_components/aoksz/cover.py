@@ -3,8 +3,8 @@ import logging
 from datetime import timedelta
 
 from homeassistant.core import callback
-from homeassistant.components.cover import CoverEntity, CoverEntityDescription, CoverDeviceClass, CoverEntityFeature
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.components.cover import CoverEntity, CoverEntityDescription, CoverDeviceClass, CoverEntityFeature, ENTITY_ID_FORMAT
+from homeassistant.helpers.entity import async_generate_entity_id, DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
 from .const import *
 import math
@@ -24,11 +24,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     groups = {grp_id for grp_id, dev in coordinator.device_lists}
     covers = [
-        AOKCover(coordinator, dev, config_entry, client)
+        AOKCover(coordinator, dev, hass, client)
         for dev in coordinator.device_lists
     ]
     covers.extend([
-       AOKCover(coordinator, (dev, 0xffff), config_entry, client)
+       AOKCover(coordinator, (dev, 0xffff), hass, client)
        for dev in groups
     ])
     async_add_entities(
@@ -42,7 +42,7 @@ class AOKCover(CoordinatorEntity, CoverEntity):
                                 CoverEntityFeature.SET_POSITION |
                                 CoverEntityFeature.STOP
                                 )
-    def __init__(self, coordinator, dev, config_entry, client):
+    def __init__(self, coordinator, dev, hass, client):
         channel_id = int(math.log(dev[1], 2)) + 1
         if dev[1] == 0xffff:
             channel_id = 0
@@ -56,9 +56,10 @@ class AOKCover(CoordinatorEntity, CoverEntity):
             identifiers={(DOMAIN, self._attr_unique_id)},
             name="AOK %s" % key,
             manufacturer="奥科伟业",
-            model=None,
-            via_device=(DOMAIN, config_entry.entry_id)
+            model=None
         )
+        if channel_id != 0:
+            self._attr_device_info['via_device'] = (DOMAIN, "%02d-%02d" % (dev[0], 0))
         self._attr_translation_key = key
         self.entity_description = CoverEntityDescription(
             key=key,
