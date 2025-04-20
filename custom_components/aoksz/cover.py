@@ -24,11 +24,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     groups = {grp_id for grp_id, dev in coordinator.device_lists}
     covers = [
-        AOKCover(coordinator, dev, client)
+        AOKCover(coordinator, dev, config_entry, client)
         for dev in coordinator.device_lists
     ]
     covers.extend([
-       AOKCover(coordinator, (dev, 0xffff), client)
+       AOKCover(coordinator, (dev, 0xffff), config_entry, client)
        for dev in groups
     ])
     async_add_entities(
@@ -42,7 +42,7 @@ class AOKCover(CoordinatorEntity, CoverEntity):
                                 CoverEntityFeature.SET_POSITION |
                                 CoverEntityFeature.STOP
                                 )
-    def __init__(self, coordinator, dev, client):
+    def __init__(self, coordinator, dev, config_entry, client):
         channel_id = int(math.log(dev[1], 2)) + 1
         if dev[1] == 0xffff:
             channel_id = 0
@@ -51,7 +51,12 @@ class AOKCover(CoordinatorEntity, CoverEntity):
 
         self.client = client
         self._data_key = dev
-        self._attr_device_info = coordinator.device_info
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry.entry_id)},
+            name="AOK %s" % key,
+            manufacturer="奥科伟业",
+            model=None
+        )
         self._attr_translation_key = key
         self.entity_description = CoverEntityDescription(
             key=key,
